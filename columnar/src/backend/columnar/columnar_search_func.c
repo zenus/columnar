@@ -14,6 +14,7 @@
 #include "postgres.h"
 
 #include "safe_lib.h"
+#include "funcapi.h"
 
 #include "columnar/columnar.h"
 #include "columnar/columnar_version_compat.h"
@@ -33,43 +34,6 @@ typedef struct MatchFunctionInfo
 	uint32 fuzziness;
 } MatchFunctionInfo;
 
-
-PG_FUNCTION_INFO_V1(InvertedIndexFuncMatch);
-
-Datum
-InvertedIndexFuncMatch(PG_FUNCTION_ARGS)
-{
-	#define MATCH_INFO_NATTS 4
-	char *fieldStr = PG_GETARG_CSTRING(0);
-	char *queryText = PG_GETARG_CSTRING(1);
-	char *queryOption = PG_GETARG_CSTRING(2);
-	List *queryFields = NIL;
-	TupleDesc tupdesc;
-
-
-	dterr = ParseQueryField(queryField, queryField);
-	if (dterr == 0) 
-	{
-		ereport(ERROR, (errmsg("cannot parse query field"),
-						errdetail("parse invert index query field error: %s", fieldStr)));
-	}
-
-	Datum values[MATCH_INFO_NATTS] = { 0 };
-	bool nulls[MATCH_INFO_NATTS] = { 0 };
-
-	InvertedIndexQueryField* queryField = (InvertedIndexQueryField*) linitial(queryFields);
-
-	values[0] = CStringGetDatum(queryField->field);
-	values[1] = Float4GetDatum(queryField->boost);
-	values[2] = CStringGetDatum(queryText);
-	values[3] = CStringGetDatum(queryOption);
-
-
-	HeapTuple tuple = heap_form_tuple(tupdesc, values, nulls);
-
-	PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
-	
-}
 
 int
 ParseQueryField(char *fieldstr, List* queryFields)
@@ -140,4 +104,42 @@ ParseQueryField(char *fieldstr, List* queryFields)
 		return nf;
 	}
 
+}
+
+PG_FUNCTION_INFO_V1(InvertedIndexFuncMatch);
+
+Datum
+InvertedIndexFuncMatch(PG_FUNCTION_ARGS)
+{
+	#define MATCH_INFO_NATTS 4
+	char *fieldStr = PG_GETARG_CSTRING(0);
+	char *queryText = PG_GETARG_CSTRING(1);
+	char *queryOption = PG_GETARG_CSTRING(2);
+	List *queryFields = NIL;
+	TupleDesc tupdesc;
+	int	 dterr;
+
+
+	dterr = ParseQueryField(fieldStr, queryFields);
+	if (dterr == 0) 
+	{
+		ereport(ERROR, (errmsg("cannot parse query field"),
+						errdetail("parse invert index query field error: %s", fieldStr)));
+	}
+
+	Datum values[MATCH_INFO_NATTS] = { 0 };
+	bool nulls[MATCH_INFO_NATTS] = { 0 };
+
+	InvertedIndexQueryField* queryField = (InvertedIndexQueryField*) linitial(queryFields);
+
+	values[0] = CStringGetDatum(queryField->field);
+	values[1] = Float4GetDatum(queryField->boost);
+	values[2] = CStringGetDatum(queryText);
+	values[3] = CStringGetDatum(queryOption);
+
+
+	HeapTuple tuple = heap_form_tuple(tupdesc, values, nulls);
+
+	PG_RETURN_DATUM(HeapTupleGetDatum(tuple));
+	
 }
