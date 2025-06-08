@@ -101,9 +101,8 @@ ParseQueryField(char *fieldstr, List* queryFields)
 		} 		
 		queryFields = lappend(queryFields, queryField);
 		nf++;
-		return nf;
 	}
-
+	return nf;
 }
 
 PG_FUNCTION_INFO_V1(InvertedIndexFuncMatch);
@@ -119,6 +118,17 @@ InvertedIndexFuncMatch(PG_FUNCTION_ARGS)
 	TupleDesc tupdesc;
 	int	 dterr;
 
+	
+	tupdesc = CreateTemplateTupleDesc(MATCH_INFO_NATTS);
+
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "field",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "boost",
+					   FLOAT4OID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 3, "query",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 4, "option",
+					   TEXTOID, -1, 0);
 
 	dterr = ParseQueryField(fieldStr, queryFields);
 	if (dterr == 0) 
